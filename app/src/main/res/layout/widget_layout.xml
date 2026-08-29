@@ -2,31 +2,34 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#DD000000"
+    android:background="@drawable/widget_bg"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:padding="12dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Escenas"
-        android:textColor="#FFFFFF"
+        android:text="Mis Escenas"
+        android:textColor="@color/widget_text"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginBottom="4dp"/>
+        android:layout_marginBottom="8dp"/>
 
     <ListView
         android:id="@+id/widget_list_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:divider="@null"
-        android:dividerHeight="4dp"/>
+        android:dividerHeight="6dp"/>
 
     <TextView
         android:id="@+id/widget_empty_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="Sin escenas. Abre la app."
-        android:textColor="#FFFFFF"
-        android:gravity="center"/>
+        android:text="Sin escenas.
+Abre la app para sincronizar."
+        android:textColor="@color/widget_text"
+        android:gravity="center"
+        android:alpha="0.7"/>
 </LinearLayout>\n
