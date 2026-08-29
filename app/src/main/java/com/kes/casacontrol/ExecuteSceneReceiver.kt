@@ -44,4 +44,4 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
             }
         }
     }
-}\n
+}

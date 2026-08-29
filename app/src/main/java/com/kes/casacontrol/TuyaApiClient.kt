@@ -167,4 +167,4 @@ class TuyaApiClient(
         } catch (e: Exception) { e.printStackTrace() }
         return false
     }
-}\n
+}

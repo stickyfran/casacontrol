@@ -31,4 +31,4 @@ class SceneWidgetProvider : AppWidgetProvider() {
             appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_list_view)
         }
     }
-}\n
+}

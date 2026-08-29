@@ -49,4 +49,4 @@ class SceneRemoteViewsFactory(private val context: Context) : RemoteViewsService
     override fun getViewTypeCount(): Int = 1
     override fun getItemId(position: Int): Long = position.toLong()
     override fun hasStableIds(): Boolean = true
-}\n
+}

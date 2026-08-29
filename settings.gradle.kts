@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "CasaControl"
-include(":app")\n
+include(":app")

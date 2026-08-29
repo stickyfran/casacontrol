@@ -32,4 +32,4 @@ Abre la app para sincronizar."
         android:textColor="@color/widget_text"
         android:gravity="center"
         android:alpha="0.7"/>
-</LinearLayout>\n
+</LinearLayout>
