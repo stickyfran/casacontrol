@@ -49,6 +49,8 @@ class MainActivity : AppCompatActivity() {
                 .putString("clientSecret", clientSecret)
                 .putString("regionUrl", regionUrl)
                 .putString("uid", uid)
+                // Force token refresh on config change
+                .putString("access_token", "")
                 .apply()
 
             Toast.makeText(this, "Conectando con Tuya...", Toast.LENGTH_SHORT).show()
@@ -58,38 +60,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun fetchScenes(clientId: String, secret: String, url: String, uid: String) {
         GlobalScope.launch(Dispatchers.IO) {
-            val api = TuyaApiClient(clientId, secret, url)
-            if (api.getToken()) {
-                val homes = api.getHomes(uid)
-                if (homes.isNotEmpty()) {
-                    val homeId = homes[0].getString("home_id")
-                    getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
-                        .edit().putString("homeId", homeId).apply()
-                        
-                    val scenes = api.getScenes(homeId)
-                    val scenesArray = JSONArray()
-                    scenes.forEach { scenesArray.put(it) }
+            val api = TuyaApiClient(applicationContext, clientId, secret, url)
+            val homes = api.getHomes(uid)
+            if (homes.isNotEmpty()) {
+                val homeId = homes[0].getString("home_id")
+                getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+                    .edit().putString("homeId", homeId).apply()
                     
-                    getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
-                        .edit().putString("scenes", scenesArray.toString()).apply()
-                    
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "Exito! Se encontraron ${scenes.size} escenas.", Toast.LENGTH_LONG).show()
-                        // Update widgets
-                        val intent = Intent(this@MainActivity, SceneWidgetProvider::class.java)
-                        intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                        val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(ComponentName(application, SceneWidgetProvider::class.java))
-                        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-                        sendBroadcast(intent)
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "No se encontraron casas para ese UID", Toast.LENGTH_LONG).show()
-                    }
+                val scenes = api.getScenes(homeId)
+                val scenesArray = JSONArray()
+                scenes.forEach { scenesArray.put(it) }
+                
+                getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+                    .edit().putString("scenes", scenesArray.toString()).apply()
+                
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Exito! Se encontraron ${scenes.size} escenas.", Toast.LENGTH_LONG).show()
+                    // Update widgets
+                    val intent = Intent(this@MainActivity, SceneWidgetProvider::class.java)
+                    intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(ComponentName(application, SceneWidgetProvider::class.java))
+                    intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+                    sendBroadcast(intent)
                 }
             } else {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Error de autenticación, revisa tus claves", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "Error, revisa tus claves o tu UID", Toast.LENGTH_LONG).show()
                 }
             }
         }

@@ -25,15 +25,22 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
 
         Toast.makeText(context, "Ejecutando...", Toast.LENGTH_SHORT).show()
 
+        // goAsync prevents Android from killing the BroadcastReceiver process before coroutine finishes
+        val pendingResult = goAsync()
+
         GlobalScope.launch(Dispatchers.IO) {
-            val api = TuyaApiClient(clientId, secret, url)
-            val success = api.triggerScene(homeId, sceneId)
-            withContext(Dispatchers.Main) {
-                if (success) {
-                    Toast.makeText(context, "Escena ejecutada", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(context, "Error al ejecutar", Toast.LENGTH_SHORT).show()
+            try {
+                val api = TuyaApiClient(context, clientId, secret, url)
+                val success = api.triggerScene(homeId, sceneId)
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        Toast.makeText(context, "Escena ejecutada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Error al ejecutar", Toast.LENGTH_SHORT).show()
+                    }
                 }
+            } finally {
+                pendingResult.finish()
             }
         }
     }
