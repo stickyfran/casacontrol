@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Configuración API"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/etRegionUrl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Region URL (ej. https://openapi.tuyaus.com)"/>
+
+    <EditText
+        android:id="@+id/etClientId"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Client ID"/>
+
+    <EditText
+        android:id="@+id/etClientSecret"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Client Secret"/>
+
+    <EditText
+        android:id="@+id/etUid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="User ID (UID)"/>
+
+    <Button
+        android:id="@+id/btnSaveAndFetch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Guardar y Obtener Escenas"
+        android:layout_marginTop="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Luego de guardar, añade el widget a tu pantalla de inicio."/>
+
+</LinearLayout>\n
