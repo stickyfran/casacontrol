@@ -1,3 +1,4 @@
+
 package com.kes.casacontrol
 
 import android.appwidget.AppWidgetManager
@@ -44,13 +45,13 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            // Los datos se guardan SIEMPRE, incluso si falla la conexion
             prefs.edit()
                 .putString("clientId", clientId)
                 .putString("clientSecret", clientSecret)
                 .putString("regionUrl", regionUrl)
                 .putString("uid", uid)
-                // Force token refresh on config change
-                .putString("access_token", "")
+                .putString("access_token", "") // Forzar refresh token
                 .apply()
 
             Toast.makeText(this, "Conectando con Tuya...", Toast.LENGTH_SHORT).show()
@@ -62,21 +63,34 @@ class MainActivity : AppCompatActivity() {
         GlobalScope.launch(Dispatchers.IO) {
             val api = TuyaApiClient(applicationContext, clientId, secret, url)
             val homes = api.getHomes(uid)
+            val prefs = getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+            
             if (homes.isNotEmpty()) {
                 val homeId = homes[0].getString("home_id")
-                getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
-                    .edit().putString("homeId", homeId).apply()
+                prefs.edit().putString("homeId", homeId).apply()
                     
                 val scenes = api.getScenes(homeId)
                 val scenesArray = JSONArray()
                 scenes.forEach { scenesArray.put(it) }
                 
-                getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
-                    .edit().putString("scenes", scenesArray.toString()).apply()
+                prefs.edit().putString("scenes", scenesArray.toString()).apply()
+                
+                // Logica de renovacion: guardar la primera vez que funciona
+                val firstSuccess = prefs.getLong("first_success_time", 0L)
+                if (firstSuccess == 0L) {
+                    prefs.edit().putLong("first_success_time", System.currentTimeMillis()).apply()
+                } else {
+                    // Advertencia si han pasado más de 150 días (5 meses)
+                    val daysElapsed = (System.currentTimeMillis() - firstSuccess) / (1000 * 60 * 60 * 24)
+                    if (daysElapsed > 150) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@MainActivity, "ATENCION: Tu prueba de Tuya caducará pronto (han pasado $daysElapsed dias). Renuevala en iot.tuya.com", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
                 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Exito! Se encontraron ${scenes.size} escenas.", Toast.LENGTH_LONG).show()
-                    // Update widgets
+                    Toast.makeText(this@MainActivity, "¡Éxito! Se encontraron ${scenes.size} escenas. Datos guardados.", Toast.LENGTH_LONG).show()
                     val intent = Intent(this@MainActivity, SceneWidgetProvider::class.java)
                     intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
                     val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(ComponentName(application, SceneWidgetProvider::class.java))
@@ -84,8 +98,30 @@ class MainActivity : AppCompatActivity() {
                     sendBroadcast(intent)
                 }
             } else {
+                // Manejo detallado de errores
+                val errorMsg = when (api.lastErrorCode) {
+                    28841002 -> "Credenciales CORRECTAS, pero el servicio 'IoT Core' está caducado en iot.tuya.com. Renuevalo."
+                    1106 -> "Permiso denegado. Renueva 'IoT Core' en Tuya."
+                    1004 -> "Client Secret incorrecto."
+                    1108 -> "Client ID incorrecto."
+                    else -> {
+                        if (api.lastError.contains("expire", true)) {
+                            "El servicio 'IoT Core' parece estar caducado. Renuevalo en iot.tuya.com."
+                        } else if (api.lastError.isNotEmpty()) {
+                            "Error de Tuya: ${api.lastError} (Code: ${api.lastErrorCode})"
+                        } else {
+                            "Error de conexión. Revisa si el UID es correcto."
+                        }
+                    }
+                }
+                
+                // Si esta caducado, borramos el first_success_time para que cuando lo arregle, vuelva a contar de 0
+                if (api.lastErrorCode == 28841002 || api.lastErrorCode == 1106) {
+                    prefs.edit().putLong("first_success_time", 0L).apply()
+                }
+                
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Error, revisa tus claves o tu UID", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "$errorMsg (Tus credenciales se han quedado guardadas)", Toast.LENGTH_LONG).show()
                 }
             }
         }

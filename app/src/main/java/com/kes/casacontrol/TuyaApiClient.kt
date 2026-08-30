@@ -1,3 +1,4 @@
+
 package com.kes.casacontrol
 
 import android.content.Context
@@ -16,7 +17,6 @@ class TuyaApiClient(
     private val clientSecret: String,
     private val regionUrl: String
 ) {
-    // Singleton OkHttpClient for connection pooling (Performance boost)
     companion object {
         private val client = OkHttpClient.Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
@@ -26,6 +26,9 @@ class TuyaApiClient(
     }
 
     private val prefs = context.getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+    
+    var lastError: String = ""
+    var lastErrorCode: Int = 0
 
     private fun sha256(data: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -52,7 +55,6 @@ class TuyaApiClient(
         val cachedToken = prefs.getString("access_token", "") ?: ""
         val expireTime = prefs.getLong("access_token_expire", 0L)
         
-        // If token is valid for at least 1 more minute, reuse it (huge performance boost)
         if (cachedToken.isNotEmpty() && System.currentTimeMillis() < expireTime - 60000) {
             return cachedToken
         }
@@ -83,9 +85,15 @@ class TuyaApiClient(
                         .apply()
                         
                     return newToken
+                } else {
+                    lastErrorCode = json.optInt("code", 0)
+                    lastError = json.optString("msg", "Error de token")
                 }
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) { 
+            lastError = e.message ?: "Network error"
+            e.printStackTrace() 
+        }
         return ""
     }
 
@@ -110,9 +118,15 @@ class TuyaApiClient(
                 if (json.optBoolean("success", false)) {
                     val arr = json.getJSONArray("result")
                     for (i in 0 until arr.length()) list.add(arr.getJSONObject(i))
+                } else {
+                    lastErrorCode = json.optInt("code", 0)
+                    lastError = json.optString("msg", "Error al obtener casas")
                 }
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) { 
+            lastError = e.message ?: "Network error"
+            e.printStackTrace() 
+        }
         return list
     }
 
@@ -137,9 +151,15 @@ class TuyaApiClient(
                 if (json.optBoolean("success", false)) {
                     val arr = json.getJSONArray("result")
                     for (i in 0 until arr.length()) list.add(arr.getJSONObject(i))
+                } else {
+                    lastErrorCode = json.optInt("code", 0)
+                    lastError = json.optString("msg", "Error al obtener escenas")
                 }
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) { 
+            lastError = e.message ?: "Network error"
+            e.printStackTrace() 
+        }
         return list
     }
 
@@ -162,9 +182,18 @@ class TuyaApiClient(
         try {
             client.newCall(request).execute().use { response ->
                 val json = JSONObject(response.body?.string() ?: "")
-                return json.optBoolean("success", false)
+                if (json.optBoolean("success", false)) {
+                    return true
+                } else {
+                    lastErrorCode = json.optInt("code", 0)
+                    lastError = json.optString("msg", "Error al ejecutar")
+                    return false
+                }
             }
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) { 
+            lastError = e.message ?: "Network error"
+            e.printStackTrace() 
+        }
         return false
     }
 }
