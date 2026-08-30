@@ -53,18 +53,43 @@
                     android:text="⚡"
                     android:textSize="24sp" />
 
-                <TextView
-                    android:id="@+id/tvPreviewName"
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="12dp"
-                    android:text="Nombre de Escena"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="#FFFFFF" />
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvPreviewName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Nombre de Escena"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/tvPreviewStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Visible en Widgets"
+                        android:textSize="11sp"
+                        android:textColor="#CCFFFFFF" />
+                </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
+
+        <!-- Visibility Switch -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchVisibility"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Mostrar escena en Widgets"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:checked="true"
+            android:layout_marginBottom="14dp" />
 
         <!-- Name Input -->
         <com.google.android.material.textfield.TextInputLayout
@@ -80,11 +105,11 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Emoji Quick Palette -->
+        <!-- Emoji Quick Palette & Keyboard Input -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Selecciona un Emoji / Icono:"
+            android:text="Emoji / Icono:"
             android:textSize="13sp"
             android:textStyle="bold"
             android:layout_marginBottom="6dp" />
@@ -106,20 +131,20 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="O escribe un Emoji personalizado">
+            android:hint="Escribe cualquier Emoji con tu teclado">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etEmoji"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:maxLength="4" />
+                android:maxLength="8" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Color Quick Palette -->
+        <!-- Color Palette -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Selecciona un Color:"
+            android:text="Paleta de Colores Predeterminados:"
             android:textSize="13sp"
             android:textStyle="bold"
             android:layout_marginBottom="6dp" />
@@ -128,10 +153,36 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scrollbars="none"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="10dp">
 
             <LinearLayout
                 android:id="@+id/layoutColorPalette"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <!-- Recent Custom Colors -->
+        <TextView
+            android:id="@+id/tvRecentColorsLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Colores Personalizados Recientes:"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:visibility="gone" />
+
+        <HorizontalScrollView
+            android:id="@+id/scrollRecentColors"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:layout_marginBottom="10dp"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/layoutRecentColors"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal" />
@@ -141,7 +192,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            android:hint="O código de color Hex (ej. #306fff)">
+            android:hint="Código de color Hex personalizado (ej. #306FFF)">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etColor"

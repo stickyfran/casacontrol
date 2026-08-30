@@ -70,6 +70,9 @@ class MainActivity : AppCompatActivity() {
         val btnRefresh = findViewById<ImageButton>(R.id.btnRefreshScenes)
         btnRefresh.setOnClickListener { refreshScenesFromTuya() }
 
+        val btnBackup = findViewById<ImageButton>(R.id.btnBackup)
+        btnBackup.setOnClickListener { showBackupDialog() }
+
         btnToggleEditMode.setOnClickListener {
             toggleEditMode()
         }
@@ -167,32 +170,75 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getRecentColors(): MutableList<String> {
+        val prefs = getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+        val str = prefs.getString("recent_colors", "[]") ?: "[]"
+        val list = mutableListOf<String>()
+        try {
+            val arr = JSONArray(str)
+            for (i in 0 until arr.length()) {
+                list.add(arr.getString(i))
+            }
+        } catch (e: Exception) {}
+        return list
+    }
+
+    private fun saveRecentColor(colorHex: String) {
+        if (colorHex.isEmpty()) return
+        val formatted = if (colorHex.startsWith("#")) colorHex.uppercase() else "#${colorHex.uppercase()}"
+        val list = getRecentColors()
+        list.remove(formatted)
+        list.add(0, formatted)
+        while (list.size > 10) {
+            list.removeAt(list.size - 1)
+        }
+        val arr = JSONArray()
+        list.forEach { arr.put(it) }
+        val prefs = getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("recent_colors", arr.toString()).apply()
+    }
+
     private fun showEditDialog(position: Int, scene: JSONObject) {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_scene, null)
         val etCustomName = dialogView.findViewById<EditText>(R.id.etCustomName)
         val etEmoji = dialogView.findViewById<EditText>(R.id.etEmoji)
         val etColor = dialogView.findViewById<EditText>(R.id.etColor)
+        val switchVisibility = dialogView.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchVisibility)
         
         val tvPreviewName = dialogView.findViewById<TextView>(R.id.tvPreviewName)
         val tvPreviewEmoji = dialogView.findViewById<TextView>(R.id.tvPreviewEmoji)
+        val tvPreviewStatus = dialogView.findViewById<TextView>(R.id.tvPreviewStatus)
         val previewContainer = dialogView.findViewById<LinearLayout>(R.id.previewContainer)
         val layoutEmojiPalette = dialogView.findViewById<LinearLayout>(R.id.layoutEmojiPalette)
         val layoutColorPalette = dialogView.findViewById<LinearLayout>(R.id.layoutColorPalette)
+        val layoutRecentColors = dialogView.findViewById<LinearLayout>(R.id.layoutRecentColors)
+        val tvRecentColorsLabel = dialogView.findViewById<TextView>(R.id.tvRecentColorsLabel)
+        val scrollRecentColors = dialogView.findViewById<HorizontalScrollView>(R.id.scrollRecentColors)
 
         val defaultName = scene.optString("name", "Escena")
         val currentCustomName = scene.optString("custom_name", defaultName)
         val currentEmoji = scene.optString("emoji", "⚡")
         val currentColor = scene.optString("color", "")
+        val isHidden = scene.optBoolean("is_hidden", false)
 
         etCustomName.setText(currentCustomName)
         etEmoji.setText(currentEmoji)
         etColor.setText(currentColor)
+        switchVisibility.isChecked = !isHidden
 
         fun updatePreview() {
             val nameText = etCustomName.text.toString().trim()
             tvPreviewName.text = if (nameText.isNotEmpty()) nameText else defaultName
             val emojiText = etEmoji.text.toString().trim()
             tvPreviewEmoji.text = if (emojiText.isNotEmpty()) emojiText else "⚡"
+
+            if (switchVisibility.isChecked) {
+                tvPreviewStatus.text = "Visible en Widgets"
+                tvPreviewStatus.setTextColor(Color.parseColor("#CCFFFFFF"))
+            } else {
+                tvPreviewStatus.text = "🚫 Oculta en Widgets"
+                tvPreviewStatus.setTextColor(Color.parseColor("#FFAAAA"))
+            }
 
             val col = etColor.text.toString().trim()
             if (col.isNotEmpty()) {
@@ -225,6 +271,7 @@ class MainActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updatePreview() }
             override fun afterTextChanged(s: Editable?) {}
         })
+        switchVisibility.setOnCheckedChangeListener { _, _ -> updatePreview() }
 
         // Build Emoji Quick Palette
         for (emoji in presetEmojis) {
@@ -265,12 +312,39 @@ class MainActivity : AppCompatActivity() {
             layoutColorPalette.addView(colorBtn)
         }
 
+        // Build Recent Custom Colors Palette (up to 10)
+        val recentColors = getRecentColors()
+        if (recentColors.isNotEmpty()) {
+            tvRecentColorsLabel.visibility = View.VISIBLE
+            scrollRecentColors.visibility = View.VISIBLE
+            for (hex in recentColors) {
+                val colorBtn = Button(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(90, 90).apply {
+                        setMargins(8, 4, 8, 4)
+                    }
+                    try {
+                        val shape = GradientDrawable().apply {
+                            shape = GradientDrawable.OVAL
+                            setColor(Color.parseColor(hex))
+                            setStroke(2, Color.WHITE)
+                        }
+                        background = shape
+                    } catch (e: Exception) {}
+                    setOnClickListener {
+                        etColor.setText(hex)
+                    }
+                }
+                layoutRecentColors.addView(colorBtn)
+            }
+        }
+
         AlertDialog.Builder(this)
             .setView(dialogView)
             .setPositiveButton("Guardar") { _, _ ->
                 val finalName = etCustomName.text.toString().trim()
                 val finalEmoji = etEmoji.text.toString().trim()
                 val finalColor = etColor.text.toString().trim()
+                val finalIsHidden = !switchVisibility.isChecked
 
                 scene.put("custom_name", finalName)
                 scene.put("emoji", if (finalEmoji.isNotEmpty()) finalEmoji else "⚡")
@@ -278,6 +352,11 @@ class MainActivity : AppCompatActivity() {
                     if (finalColor.startsWith("#")) finalColor else "#$finalColor"
                 } else ""
                 scene.put("color", formattedColor)
+                scene.put("is_hidden", finalIsHidden)
+
+                if (formattedColor.isNotEmpty()) {
+                    saveRecentColor(formattedColor)
+                }
                 
                 sceneAdapter.notifyItemChanged(position)
                 saveScenesToPrefs()
@@ -287,12 +366,97 @@ class MainActivity : AppCompatActivity() {
                 scene.remove("custom_name")
                 scene.remove("emoji")
                 scene.remove("color")
+                scene.remove("is_hidden")
                 sceneAdapter.notifyItemChanged(position)
                 saveScenesToPrefs()
                 Toast.makeText(this, "Escena restablecida a valores por defecto", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancelar", null)
             .show()
+    }
+
+    private fun showBackupDialog() {
+        val options = arrayOf("📤 Exportar Copia de Seguridad", "📥 Importar Copia de Seguridad")
+        AlertDialog.Builder(this)
+            .setTitle("Copia de Seguridad")
+            .setItems(options) { _, which ->
+                if (which == 0) {
+                    exportBackup()
+                } else {
+                    showImportBackupDialog()
+                }
+            }
+            .setNegativeButton("Cerrar", null)
+            .show()
+    }
+
+    private fun exportBackup() {
+        val prefs = getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+        val backupObj = JSONObject()
+        backupObj.put("app", "CasaControl")
+        backupObj.put("version", 2)
+        backupObj.put("clientId", prefs.getString("clientId", ""))
+        backupObj.put("clientSecret", prefs.getString("clientSecret", ""))
+        backupObj.put("regionUrl", prefs.getString("regionUrl", "https://openapi.tuyaus.com"))
+        backupObj.put("uid", prefs.getString("uid", ""))
+        backupObj.put("homeId", prefs.getString("homeId", ""))
+        backupObj.put("scenes", JSONArray(prefs.getString("scenes", "[]") ?: "[]"))
+        backupObj.put("recent_colors", JSONArray(prefs.getString("recent_colors", "[]") ?: "[]"))
+
+        val jsonString = backupObj.toString(2)
+
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, jsonString)
+            putExtra(Intent.EXTRA_TITLE, "Backup CasaControl.json")
+            type = "text/plain"
+        }
+        startActivity(Intent.createChooser(sendIntent, "Exportar Copia de Seguridad"))
+    }
+
+    private fun showImportBackupDialog() {
+        val input = EditText(this).apply {
+            hint = "Pega aquí el contenido JSON del backup"
+            setLines(8)
+            gravity = android.view.Gravity.TOP
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Importar Backup")
+            .setMessage("Pega el texto JSON de tu copia de seguridad para restaurar todas tus credenciales, escenas y colores:")
+            .setView(input)
+            .setPositiveButton("Restaurar") { _, _ ->
+                val content = input.text.toString().trim()
+                if (content.isNotEmpty()) {
+                    restoreBackup(content)
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun restoreBackup(jsonStr: String) {
+        try {
+            val obj = JSONObject(jsonStr)
+            val prefs = getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            
+            if (obj.has("clientId")) editor.putString("clientId", obj.getString("clientId"))
+            if (obj.has("clientSecret")) editor.putString("clientSecret", obj.getString("clientSecret"))
+            if (obj.has("regionUrl")) editor.putString("regionUrl", obj.getString("regionUrl"))
+            if (obj.has("uid")) editor.putString("uid", obj.getString("uid"))
+            if (obj.has("homeId")) editor.putString("homeId", obj.getString("homeId"))
+            if (obj.has("scenes")) editor.putString("scenes", obj.getJSONArray("scenes").toString())
+            if (obj.has("recent_colors")) editor.putString("recent_colors", obj.getJSONArray("recent_colors").toString())
+            editor.apply()
+
+            val scenesStr = prefs.getString("scenes", "[]") ?: "[]"
+            loadScenesFromPrefs(scenesStr)
+            showDashboard()
+            updateAllWidgets()
+            Toast.makeText(this, "¡Backup restaurado con éxito!", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error al importar el backup: formato JSON inválido", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun loadScenesFromPrefs(jsonStr: String) {
@@ -414,6 +578,7 @@ class MainActivity : AppCompatActivity() {
                         if (oldScene.has("custom_name")) newScene.put("custom_name", oldScene.getString("custom_name"))
                         if (oldScene.has("emoji")) newScene.put("emoji", oldScene.getString("emoji"))
                         if (oldScene.has("color")) newScene.put("color", oldScene.getString("color"))
+                        if (oldScene.has("is_hidden")) newScene.put("is_hidden", oldScene.getBoolean("is_hidden"))
                     }
                     scenesArray.put(newScene)
                 }

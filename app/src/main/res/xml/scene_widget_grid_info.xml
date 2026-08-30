@@ -5,4 +5,5 @@
     android:updatePeriodMillis="86400000"
     android:initialLayout="@layout/widget_grid_layout"
     android:resizeMode="horizontal|vertical"
+    android:configure="com.kes.casacontrol.WidgetConfigActivity"
     android:widgetCategory="home_screen" />

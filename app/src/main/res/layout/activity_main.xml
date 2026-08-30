@@ -133,6 +133,15 @@
                 android:layout_marginEnd="4dp" />
 
             <ImageButton
+                android:id="@+id/btnBackup"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_save"
+                android:contentDescription="Copia de Seguridad"
+                android:layout_marginEnd="4dp" />
+
+            <ImageButton
                 android:id="@+id/btnLogout"
                 android:layout_width="40dp"
                 android:layout_height="40dp"

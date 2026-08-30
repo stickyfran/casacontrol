@@ -48,6 +48,15 @@
                 android:textSize="11sp"
                 android:textColor="?android:attr/textColorSecondary"
                 android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvHiddenBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🚫 Oculta en Widgets"
+                android:textSize="10sp"
+                android:textColor="#EF4444"
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Edit indicator button -->

@@ -1,5 +1,6 @@
 package com.kes.casacontrol
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -8,7 +9,10 @@ import android.widget.RemoteViewsService
 import org.json.JSONArray
 import org.json.JSONObject
 
-class SceneRemoteViewsFactoryGrid(private val context: Context) : RemoteViewsService.RemoteViewsFactory {
+class SceneRemoteViewsFactoryGrid(
+    private val context: Context,
+    private val appWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
+) : RemoteViewsService.RemoteViewsFactory {
     private val scenesList = mutableListOf<JSONObject>()
 
     override fun onCreate() {}
@@ -20,8 +24,27 @@ class SceneRemoteViewsFactoryGrid(private val context: Context) : RemoteViewsSer
         if (scenesStr.isNotEmpty()) {
             try {
                 val arr = JSONArray(scenesStr)
+                val allNonHidden = mutableListOf<JSONObject>()
                 for (i in 0 until arr.length()) {
-                    scenesList.add(arr.getJSONObject(i))
+                    val obj = arr.getJSONObject(i)
+                    if (!obj.optBoolean("is_hidden", false)) {
+                        allNonHidden.add(obj)
+                    }
+                }
+
+                val widgetConfigStr = if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                    prefs.getString("widget_${appWidgetId}_scenes", null)
+                } else null
+
+                if (widgetConfigStr != null) {
+                    val allowedSet = mutableSetOf<String>()
+                    val allowedArr = JSONArray(widgetConfigStr)
+                    for (i in 0 until allowedArr.length()) {
+                        allowedSet.add(allowedArr.getString(i))
+                    }
+                    allNonHidden.filterTo(scenesList) { allowedSet.contains(it.optString("scene_id")) }
+                } else {
+                    scenesList.addAll(allNonHidden)
                 }
             } catch (e: Exception) { e.printStackTrace() }
         }

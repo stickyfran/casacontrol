@@ -26,6 +26,7 @@ class SceneAdapter(
     class SceneViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tvName)
         val tvOriginalName: TextView = view.findViewById(R.id.tvOriginalName)
+        val tvHiddenBadge: TextView = view.findViewById(R.id.tvHiddenBadge)
         val tvEmoji: TextView = view.findViewById(R.id.tvEmoji)
         val container: LinearLayout = view.findViewById(R.id.itemContainer)
         val btnEditScene: ImageButton = view.findViewById(R.id.btnEditScene)
@@ -44,6 +45,7 @@ class SceneAdapter(
         val customName = scene.optString("custom_name", "")
         val emoji = scene.optString("emoji", "⚡")
         val colorHex = scene.optString("color", "")
+        val isHidden = scene.optBoolean("is_hidden", false)
 
         val displayName = if (customName.isNotEmpty()) customName else defaultName
         holder.tvName.text = displayName
@@ -54,6 +56,15 @@ class SceneAdapter(
             holder.tvOriginalName.visibility = View.VISIBLE
         } else {
             holder.tvOriginalName.visibility = View.GONE
+        }
+
+        // Hidden badge
+        if (isHidden) {
+            holder.tvHiddenBadge.visibility = View.VISIBLE
+            holder.container.alpha = if (isEditMode) 0.65f else 0.5f
+        } else {
+            holder.tvHiddenBadge.visibility = View.GONE
+            holder.container.alpha = 1.0f
         }
 
         // Color handling
