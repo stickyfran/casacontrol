@@ -16,20 +16,24 @@
         android:gravity="center"
         android:layout_marginBottom="8dp"/>
 
-    <ListView
-        android:id="@+id/widget_list_view"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:divider="@null"
-        android:dividerHeight="6dp"/>
+        android:fillViewport="true">
+        <LinearLayout
+            android:id="@+id/widget_list_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
 
     <TextView
         android:id="@+id/widget_empty_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="Sin escenas.
-Abre la app para sincronizar."
+        android:text="Sin escenas. Abre la app."
         android:textColor="@color/widget_text"
         android:gravity="center"
+        android:visibility="gone"
         android:alpha="0.7"/>
 </LinearLayout>

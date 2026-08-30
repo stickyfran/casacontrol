@@ -6,16 +6,19 @@
     android:background="@drawable/widget_bg"
     android:padding="8dp">
 
-    <GridView
-        android:id="@+id/widget_grid_view"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:numColumns="auto_fit"
-        android:columnWidth="80dp"
-        android:horizontalSpacing="8dp"
-        android:verticalSpacing="8dp"
-        android:gravity="center"
-        android:stretchMode="columnWidth" />
+        android:fillViewport="true">
+
+        <GridLayout
+            android:id="@+id/widget_grid_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="4"
+            android:layout_gravity="center_horizontal" />
+
+    </ScrollView>
 
     <TextView
         android:id="@+id/widget_grid_empty_view"
@@ -26,5 +29,4 @@
         android:gravity="center"
         android:visibility="gone"
         android:alpha="0.7"/>
-
 </LinearLayout>
