@@ -84,17 +84,37 @@ class SceneAdapter(
         if (isEditMode) {
             holder.btnEditScene.visibility = View.VISIBLE
             holder.ivDragHandle.alpha = 1.0f
-            holder.container.setOnClickListener { onEditClick(position, scene) }
+            holder.container.setOnClickListener {
+                val pos = holder.bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION && pos < scenes.size) {
+                    onEditClick(pos, scenes[pos])
+                }
+            }
         } else {
             holder.btnEditScene.visibility = View.GONE
             holder.ivDragHandle.alpha = 0.3f
-            holder.container.setOnClickListener { onClick(scene) }
+            holder.container.setOnClickListener {
+                val pos = holder.bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION && pos < scenes.size) {
+                    onClick(scenes[pos])
+                }
+            }
         }
 
-        holder.btnEditScene.setOnClickListener { onEditClick(position, scene) }
+        holder.btnEditScene.setOnClickListener {
+            val pos = holder.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION && pos < scenes.size) {
+                onEditClick(pos, scenes[pos])
+            }
+        }
         holder.container.setOnLongClickListener {
-            onEditClick(position, scene)
-            true
+            val pos = holder.bindingAdapterPosition
+            if (pos != RecyclerView.NO_POSITION && pos < scenes.size) {
+                onEditClick(pos, scenes[pos])
+                true
+            } else {
+                false
+            }
         }
     }
 

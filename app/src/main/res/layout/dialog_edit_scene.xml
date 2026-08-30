@@ -81,7 +81,7 @@
         </androidx.cardview.widget.CardView>
 
         <!-- Visibility Switch -->
-        <com.google.android.material.materialswitch.MaterialSwitch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/switchVisibility"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

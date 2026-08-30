@@ -188,14 +188,18 @@ class WidgetConfigActivity : AppCompatActivity() {
             holder.cbSelected.isChecked = isChecked
 
             holder.container.setOnClickListener {
-                if (selectedIds.contains(sceneId)) {
-                    selectedIds.remove(sceneId)
-                    holder.cbSelected.isChecked = false
-                } else {
-                    selectedIds.add(sceneId)
-                    holder.cbSelected.isChecked = true
+                val pos = holder.bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION && pos < scenes.size) {
+                    val id = scenes[pos].optString("scene_id")
+                    if (selectedIds.contains(id)) {
+                        selectedIds.remove(id)
+                        holder.cbSelected.isChecked = false
+                    } else {
+                        selectedIds.add(id)
+                        holder.cbSelected.isChecked = true
+                    }
+                    onSelectionChanged()
                 }
-                onSelectionChanged()
             }
         }
 

@@ -91,6 +91,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleEditMode() {
+        if (!::sceneAdapter.isInitialized) return
         val newMode = !sceneAdapter.isEditMode
         sceneAdapter.isEditMode = newMode
         if (newMode) {
@@ -109,6 +110,8 @@ class MainActivity : AppCompatActivity() {
         layoutDashboard.visibility = View.GONE
     }
 
+    private var isTouchHelperAttached = false
+
     private fun showDashboard() {
         layoutAuth.visibility = View.GONE
         layoutDashboard.visibility = View.VISIBLE
@@ -121,30 +124,34 @@ class MainActivity : AppCompatActivity() {
         rvScenes.layoutManager = LinearLayoutManager(this)
         rvScenes.adapter = sceneAdapter
         
-        // Drag and Drop support
-        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
-        ) {
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ): Boolean {
-                val fromPos = viewHolder.adapterPosition
-                val toPos = target.adapterPosition
-                Collections.swap(scenesList, fromPos, toPos)
-                sceneAdapter.notifyItemMoved(fromPos, toPos)
-                return true
-            }
+        if (!isTouchHelperAttached) {
+            val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+            ) {
+                override fun onMove(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean {
+                    val fromPos = viewHolder.bindingAdapterPosition
+                    val toPos = target.bindingAdapterPosition
+                    if (fromPos == RecyclerView.NO_POSITION || toPos == RecyclerView.NO_POSITION) return false
+                    if (fromPos < 0 || fromPos >= scenesList.size || toPos < 0 || toPos >= scenesList.size) return false
+                    Collections.swap(scenesList, fromPos, toPos)
+                    sceneAdapter.notifyItemMoved(fromPos, toPos)
+                    return true
+                }
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
 
-            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-                super.clearView(recyclerView, viewHolder)
-                saveScenesToPrefs()
-            }
-        })
-        itemTouchHelper.attachToRecyclerView(rvScenes)
+                override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                    super.clearView(recyclerView, viewHolder)
+                    saveScenesToPrefs()
+                }
+            })
+            itemTouchHelper.attachToRecyclerView(rvScenes)
+            isTouchHelperAttached = true
+        }
     }
 
     private fun executeScene(scene: JSONObject) {
@@ -203,7 +210,7 @@ class MainActivity : AppCompatActivity() {
         val etCustomName = dialogView.findViewById<EditText>(R.id.etCustomName)
         val etEmoji = dialogView.findViewById<EditText>(R.id.etEmoji)
         val etColor = dialogView.findViewById<EditText>(R.id.etColor)
-        val switchVisibility = dialogView.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchVisibility)
+        val switchVisibility = dialogView.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.switchVisibility)
         
         val tvPreviewName = dialogView.findViewById<TextView>(R.id.tvPreviewName)
         val tvPreviewEmoji = dialogView.findViewById<TextView>(R.id.tvPreviewEmoji)
@@ -358,7 +365,12 @@ class MainActivity : AppCompatActivity() {
                     saveRecentColor(formattedColor)
                 }
                 
-                sceneAdapter.notifyItemChanged(position)
+                val currentPos = scenesList.indexOfFirst { it.optString("scene_id") == scene.optString("scene_id") }
+                if (currentPos != -1) {
+                    sceneAdapter.notifyItemChanged(currentPos)
+                } else {
+                    sceneAdapter.notifyDataSetChanged()
+                }
                 saveScenesToPrefs()
                 Toast.makeText(this, "Escena guardada", Toast.LENGTH_SHORT).show()
             }
@@ -367,7 +379,12 @@ class MainActivity : AppCompatActivity() {
                 scene.remove("emoji")
                 scene.remove("color")
                 scene.remove("is_hidden")
-                sceneAdapter.notifyItemChanged(position)
+                val currentPos = scenesList.indexOfFirst { it.optString("scene_id") == scene.optString("scene_id") }
+                if (currentPos != -1) {
+                    sceneAdapter.notifyItemChanged(currentPos)
+                } else {
+                    sceneAdapter.notifyDataSetChanged()
+                }
                 saveScenesToPrefs()
                 Toast.makeText(this, "Escena restablecida a valores por defecto", Toast.LENGTH_SHORT).show()
             }
