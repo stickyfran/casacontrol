@@ -53,10 +53,19 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
                 // Android limits BroadcastReceivers to 10 seconds. If we exceed this, the system
                 // throws a silent ANR and puts the app in a zombie state until force closed.
                 // We wrap the network call in an 8.5s timeout to guarantee pendingResult.finish() runs.
-                val result = kotlinx.coroutines.withTimeoutOrNull(8500L) {
-                    val api = TuyaApiClient(context, clientId, secret, url)
-                    val success = api.triggerScene(homeId, sceneId)
-                    Pair(success, api.lastError)
+                val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+                val activeNetwork = cm?.activeNetworkInfo
+                val isConnected = activeNetwork?.isConnected == true
+
+                val result = if (!isConnected) {
+                    Pair(false, "Sin conexión a internet")
+                } else {
+                    // Reduce timeout to 4.5s to free the widget touch queue faster
+                    kotlinx.coroutines.withTimeoutOrNull(4500L) {
+                        val api = TuyaApiClient(context, clientId, secret, url)
+                        val success = api.triggerScene(homeId, sceneId)
+                        Pair(success, api.lastError)
+                    }
                 }
                 
                 withContext(Dispatchers.Main) {
