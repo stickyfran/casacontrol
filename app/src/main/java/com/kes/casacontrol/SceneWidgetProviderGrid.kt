@@ -17,7 +17,7 @@ class SceneWidgetProviderGrid : AppWidgetProvider() {
             }
             val views = RemoteViews(context.packageName, R.layout.widget_grid_layout).apply {
                 setRemoteAdapter(R.id.widget_grid_view, intent)
-                setEmptyView(R.id.widget_grid_view, android.R.id.empty)
+                setEmptyView(R.id.widget_grid_view, R.id.widget_grid_empty_view)
             }
             
             val clickIntent = Intent(context, ExecuteSceneReceiver::class.java)

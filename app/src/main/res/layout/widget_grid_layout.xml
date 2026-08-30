@@ -17,4 +17,14 @@
         android:gravity="center"
         android:stretchMode="columnWidth" />
 
+    <TextView
+        android:id="@+id/widget_grid_empty_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:text="Sin escenas"
+        android:textColor="@color/widget_text"
+        android:gravity="center"
+        android:visibility="gone"
+        android:alpha="0.7"/>
+
 </LinearLayout>
