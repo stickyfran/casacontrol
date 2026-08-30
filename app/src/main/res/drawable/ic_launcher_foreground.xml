@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- House outline with rounded style -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M32,46 L54,28 L76,46 V74 C76,76.2 74.2,78 72,78 H36 C33.8,78 32,76.2 32,74 Z" />
+
+    <!-- Lightning / Smart Energy Core -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M56,38 L44,55 H53 L49,70 L64,51 H55 Z" />
+</vector>
