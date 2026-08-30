@@ -26,6 +26,12 @@ class TuyaApiClient(
             .writeTimeout(3, TimeUnit.SECONDS)
             .readTimeout(3, TimeUnit.SECONDS)
             .build()
+
+        fun evictConnectionPool() {
+            try {
+                connectionPool.evictAll()
+            } catch (e: Exception) {}
+        }
     }
 
     private val prefs = context.getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
@@ -203,6 +209,10 @@ class TuyaApiClient(
         } catch (e: Exception) { 
             lastError = e.message ?: "Network error"
             e.printStackTrace() 
+            if (retryOnAuthFail) {
+                evictConnectionPool()
+                return triggerScene(homeId, sceneId, retryOnAuthFail = false)
+            }
         }
         return false
     }

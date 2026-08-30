@@ -38,6 +38,12 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
         // goAsync prevents Android from killing the BroadcastReceiver process before coroutine finishes
         val pendingResult = goAsync()
 
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+        val wakeLock = powerManager?.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "casacontrol:executescene")
+        try {
+            wakeLock?.acquire(4000L)
+        } catch (e: Exception) {}
+
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 val api = TuyaApiClient(context, clientId, secret, url)
@@ -51,6 +57,11 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
                     }
                 }
             } finally {
+                try {
+                    if (wakeLock?.isHeld == true) {
+                        wakeLock.release()
+                    }
+                } catch (e: Exception) {}
                 pendingResult.finish()
             }
         }
