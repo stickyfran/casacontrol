@@ -156,6 +156,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun executeScene(scene: JSONObject) {
+        ExecuteSceneReceiver.triggerHapticFeedback(this)
         val sceneName = scene.optString("custom_name", scene.optString("name", "Escena"))
         Toast.makeText(this, "Ejecutando $sceneName...", Toast.LENGTH_SHORT).show()
         val prefs = getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)

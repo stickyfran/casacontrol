@@ -18,10 +18,14 @@ class TuyaApiClient(
     private val regionUrl: String
 ) {
     companion object {
+        private val connectionPool = ConnectionPool(5, 5, TimeUnit.MINUTES)
         private val client = OkHttpClient.Builder()
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .writeTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.SECONDS)
+            .connectionPool(connectionPool)
+            .retryOnConnectionFailure(true)
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .writeTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(4, TimeUnit.SECONDS)
+            .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
             .build()
     }
 
@@ -51,11 +55,12 @@ class TuyaApiClient(
         return hmacSha256(strToHash, clientSecret)
     }
 
-    private fun getValidToken(): String {
+    fun getValidToken(forceRefresh: Boolean = false): String {
         val cachedToken = prefs.getString("access_token", "") ?: ""
         val expireTime = prefs.getLong("access_token_expire", 0L)
         
-        if (cachedToken.isNotEmpty() && System.currentTimeMillis() < expireTime - 60000) {
+        // 5-minute safety margin (300,000 ms) before expiration
+        if (!forceRefresh && cachedToken.isNotEmpty() && System.currentTimeMillis() < expireTime - 300000) {
             return cachedToken
         }
 
@@ -163,7 +168,7 @@ class TuyaApiClient(
         return list
     }
 
-    fun triggerScene(homeId: String, sceneId: String): Boolean {
+    fun triggerScene(homeId: String, sceneId: String, retryOnAuthFail: Boolean = true): Boolean {
         val token = getValidToken()
         if (token.isEmpty()) return false
         val timestamp = System.currentTimeMillis().toString()
@@ -185,8 +190,14 @@ class TuyaApiClient(
                 if (json.optBoolean("success", false)) {
                     return true
                 } else {
-                    lastErrorCode = json.optInt("code", 0)
+                    val code = json.optInt("code", 0)
+                    lastErrorCode = code
                     lastError = json.optString("msg", "Error al ejecutar")
+                    if (retryOnAuthFail && (code == 1010 || code == 1107 || lastError.contains("token", true))) {
+                        prefs.edit().putString("access_token", "").apply()
+                        getValidToken(forceRefresh = true)
+                        return triggerScene(homeId, sceneId, retryOnAuthFail = false)
+                    }
                     return false
                 }
             }
