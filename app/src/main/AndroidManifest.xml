@@ -21,6 +21,7 @@
 
         <receiver
             android:name=".SceneWidgetProvider"
+            android:label="CasaControl (Lista)"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -32,6 +33,22 @@
 
         <service
             android:name=".SceneWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <receiver
+            android:name=".SceneWidgetProviderGrid"
+            android:label="CasaControl (Cuadrícula)"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/scene_widget_grid_info" />
+        </receiver>
+
+        <service
+            android:name=".SceneWidgetServiceGrid"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
         <receiver
