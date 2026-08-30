@@ -22,9 +22,9 @@ class TuyaApiClient(
         private val client = OkHttpClient.Builder()
             .connectionPool(connectionPool)
             .retryOnConnectionFailure(true)
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .writeTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.SECONDS)
+            .connectTimeout(2, TimeUnit.SECONDS)
+            .writeTimeout(2, TimeUnit.SECONDS)
+            .readTimeout(2, TimeUnit.SECONDS)
             .build()
 
         fun evictConnectionPool() {

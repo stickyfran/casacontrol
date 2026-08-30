@@ -50,23 +50,36 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
         val receiverScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         receiverScope.launch {
             try {
-                val api = TuyaApiClient(context, clientId, secret, url)
-                val success = api.triggerScene(homeId, sceneId)
+                // Android limits BroadcastReceivers to 10 seconds. If we exceed this, the system
+                // throws a silent ANR and puts the app in a zombie state until force closed.
+                // We wrap the network call in an 8.5s timeout to guarantee pendingResult.finish() runs.
+                val result = kotlinx.coroutines.withTimeoutOrNull(8500L) {
+                    val api = TuyaApiClient(context, clientId, secret, url)
+                    val success = api.triggerScene(homeId, sceneId)
+                    Pair(success, api.lastError)
+                }
+                
                 withContext(Dispatchers.Main) {
-                    if (success) {
+                    if (result == null) {
+                        Toast.makeText(context, "$sceneName: Red inestable, reintentando conexiones. Toca de nuevo.", Toast.LENGTH_LONG).show()
+                    } else if (result.first) {
                         Toast.makeText(context, "¡$sceneName activada!", Toast.LENGTH_SHORT).show()
                     } else {
-                        val err = if (api.lastError.isNotEmpty()) api.lastError else "Error al ejecutar"
+                        val err = if (result.second.isNotEmpty()) result.second else "Error al ejecutar"
                         Toast.makeText(context, "$sceneName: $err", Toast.LENGTH_SHORT).show()
                     }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             } finally {
                 try {
                     if (wakeLock?.isHeld == true) {
                         wakeLock.release()
                     }
                 } catch (e: Exception) {}
-                pendingResult.finish()
+                try {
+                    pendingResult.finish()
+                } catch (e: Exception) {}
             }
         }
     }
