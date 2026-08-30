@@ -18,14 +18,13 @@ class TuyaApiClient(
     private val regionUrl: String
 ) {
     companion object {
-        private val connectionPool = ConnectionPool(5, 5, TimeUnit.MINUTES)
+        private val connectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
         private val client = OkHttpClient.Builder()
             .connectionPool(connectionPool)
             .retryOnConnectionFailure(true)
-            .connectTimeout(4, TimeUnit.SECONDS)
-            .writeTimeout(4, TimeUnit.SECONDS)
-            .readTimeout(4, TimeUnit.SECONDS)
-            .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+            .connectTimeout(3, TimeUnit.SECONDS)
+            .writeTimeout(3, TimeUnit.SECONDS)
+            .readTimeout(3, TimeUnit.SECONDS)
             .build()
     }
 

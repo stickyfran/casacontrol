@@ -61,19 +61,32 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
-                    vibratorManager?.defaultVibrator?.vibrate(
-                        VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
-                    )
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-                    vibrator?.vibrate(VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE))
-                } else {
-                    @Suppress("DEPRECATION")
-                    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-                    vibrator?.vibrate(35)
+                    val vibrator = vibratorManager?.defaultVibrator
+                    if (vibrator != null && vibrator.hasVibrator()) {
+                        val effect = VibrationEffect.createOneShot(45, VibrationEffect.DEFAULT_AMPLITUDE)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            val attrs = android.os.VibrationAttributes.Builder()
+                                .setUsage(android.os.VibrationAttributes.USAGE_TOUCH)
+                                .build()
+                            vibrator.vibrate(effect, attrs)
+                        } else {
+                            vibrator.vibrate(effect)
+                        }
+                        return
+                    }
+                }
+                
+                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                if (vibrator != null && vibrator.hasVibrator()) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(45, VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(45)
+                    }
                 }
             } catch (e: Exception) {
-                // Ignore vibration failure on devices without vibrator motor
+                // Ignore vibration failure
             }
         }
     }
