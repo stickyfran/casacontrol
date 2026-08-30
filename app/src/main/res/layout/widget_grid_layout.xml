@@ -6,19 +6,12 @@
     android:background="@drawable/widget_bg"
     android:padding="8dp">
 
-    <ScrollView
+    <LinearLayout
+        android:id="@+id/widget_grid_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
-
-        <GridLayout
-            android:id="@+id/widget_grid_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:columnCount="4"
-            android:layout_gravity="center_horizontal" />
-
-    </ScrollView>
+        android:orientation="vertical"
+        android:layout_gravity="center_horizontal" />
 
     <TextView
         android:id="@+id/widget_grid_empty_view"
