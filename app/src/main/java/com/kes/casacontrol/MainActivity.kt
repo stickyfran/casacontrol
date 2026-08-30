@@ -119,7 +119,8 @@ class MainActivity : AppCompatActivity() {
         sceneAdapter = SceneAdapter(
             scenesList, 
             onClick = { scene -> executeScene(scene) },
-            onEditClick = { pos, scene -> showEditDialog(pos, scene) }
+            onEditClick = { pos, scene -> showEditDialog(pos, scene) },
+            onToggleVisibilityClick = { pos, scene -> toggleSceneVisibility(pos, scene) }
         )
         rvScenes.layoutManager = LinearLayoutManager(this)
         rvScenes.adapter = sceneAdapter
@@ -174,6 +175,26 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this@MainActivity, "Error: ${api.lastError}", Toast.LENGTH_LONG).show()
                 }
             }
+        }
+    }
+
+    private fun toggleSceneVisibility(position: Int, scene: JSONObject) {
+        val currentlyHidden = scene.optBoolean("is_hidden", false)
+        val newHidden = !currentlyHidden
+        scene.put("is_hidden", newHidden)
+        
+        val currentPos = scenesList.indexOfFirst { it.optString("scene_id") == scene.optString("scene_id") }
+        if (currentPos != -1) {
+            sceneAdapter.notifyItemChanged(currentPos)
+        } else {
+            sceneAdapter.notifyDataSetChanged()
+        }
+        saveScenesToPrefs()
+        val sceneName = scene.optString("custom_name", scene.optString("name", "Escena"))
+        if (newHidden) {
+            Toast.makeText(this, "$sceneName oculta en los widgets", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "$sceneName visible en los widgets", Toast.LENGTH_SHORT).show()
         }
     }
 

@@ -14,7 +14,8 @@ import org.json.JSONObject
 class SceneAdapter(
     val scenes: MutableList<JSONObject>,
     private val onClick: (JSONObject) -> Unit,
-    private val onEditClick: (Int, JSONObject) -> Unit
+    private val onEditClick: (Int, JSONObject) -> Unit,
+    private val onToggleVisibilityClick: (Int, JSONObject) -> Unit
 ) : RecyclerView.Adapter<SceneAdapter.SceneViewHolder>() {
 
     var isEditMode: Boolean = false
@@ -29,6 +30,7 @@ class SceneAdapter(
         val tvHiddenBadge: TextView = view.findViewById(R.id.tvHiddenBadge)
         val tvEmoji: TextView = view.findViewById(R.id.tvEmoji)
         val container: LinearLayout = view.findViewById(R.id.itemContainer)
+        val btnToggleVisibility: ImageButton = view.findViewById(R.id.btnToggleVisibility)
         val btnEditScene: ImageButton = view.findViewById(R.id.btnEditScene)
         val ivDragHandle: ImageView = view.findViewById(R.id.ivDragHandle)
     }
@@ -62,9 +64,11 @@ class SceneAdapter(
         if (isHidden) {
             holder.tvHiddenBadge.visibility = View.VISIBLE
             holder.container.alpha = if (isEditMode) 0.65f else 0.5f
+            holder.btnToggleVisibility.setImageResource(R.drawable.ic_visibility_off)
         } else {
             holder.tvHiddenBadge.visibility = View.GONE
             holder.container.alpha = 1.0f
+            holder.btnToggleVisibility.setImageResource(R.drawable.ic_visibility_on)
         }
 
         // Color handling
@@ -82,6 +86,7 @@ class SceneAdapter(
 
         // Edit mode visuals
         if (isEditMode) {
+            holder.btnToggleVisibility.visibility = View.VISIBLE
             holder.btnEditScene.visibility = View.VISIBLE
             holder.ivDragHandle.alpha = 1.0f
             holder.container.setOnClickListener {
@@ -91,6 +96,7 @@ class SceneAdapter(
                 }
             }
         } else {
+            holder.btnToggleVisibility.visibility = View.GONE
             holder.btnEditScene.visibility = View.GONE
             holder.ivDragHandle.alpha = 0.3f
             holder.container.setOnClickListener {
@@ -98,6 +104,13 @@ class SceneAdapter(
                 if (pos != RecyclerView.NO_POSITION && pos >= 0 && pos < scenes.size) {
                     onClick(scenes[pos])
                 }
+            }
+        }
+
+        holder.btnToggleVisibility.setOnClickListener {
+            val pos = holder.adapterPosition
+            if (pos != RecyclerView.NO_POSITION && pos >= 0 && pos < scenes.size) {
+                onToggleVisibilityClick(pos, scenes[pos])
             }
         }
 
