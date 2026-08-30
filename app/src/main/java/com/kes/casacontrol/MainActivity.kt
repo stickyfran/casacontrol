@@ -133,8 +133,8 @@ class MainActivity : AppCompatActivity() {
                     viewHolder: RecyclerView.ViewHolder,
                     target: RecyclerView.ViewHolder
                 ): Boolean {
-                    val fromPos = viewHolder.bindingAdapterPosition
-                    val toPos = target.bindingAdapterPosition
+                    val fromPos = viewHolder.adapterPosition
+                    val toPos = target.adapterPosition
                     if (fromPos == RecyclerView.NO_POSITION || toPos == RecyclerView.NO_POSITION) return false
                     if (fromPos < 0 || fromPos >= scenesList.size || toPos < 0 || toPos >= scenesList.size) return false
                     Collections.swap(scenesList, fromPos, toPos)
