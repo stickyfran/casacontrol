@@ -4,12 +4,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.widget.Toast
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -38,13 +40,15 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
         // goAsync prevents Android from killing the BroadcastReceiver process before coroutine finishes
         val pendingResult = goAsync()
 
-        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
-        val wakeLock = powerManager?.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "casacontrol:executescene")
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "casacontrol:executescene")
         try {
-            wakeLock?.acquire(4000L)
+            // Keep CPU awake up to 20 seconds to allow token refresh + network execution even with screen off
+            wakeLock?.acquire(20_000L)
         } catch (e: Exception) {}
 
-        GlobalScope.launch(Dispatchers.IO) {
+        val receiverScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        receiverScope.launch {
             try {
                 val api = TuyaApiClient(context, clientId, secret, url)
                 val success = api.triggerScene(homeId, sceneId)
@@ -74,10 +78,17 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
                     val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
                     val vibrator = vibratorManager?.defaultVibrator
                     if (vibrator != null && vibrator.hasVibrator()) {
-                        val effect = VibrationEffect.createOneShot(45, VibrationEffect.DEFAULT_AMPLITUDE)
+                        val effect = try {
+                            VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
+                        } catch (e: Exception) {
+                            VibrationEffect.createOneShot(45, VibrationEffect.DEFAULT_AMPLITUDE)
+                        }
+
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            // USAGE_NOTIFICATION has higher system priority than USAGE_TOUCH
+                            // preventing aggressive OEM battery savers from suppressing vibration when screen is off
                             val attrs = android.os.VibrationAttributes.Builder()
-                                .setUsage(android.os.VibrationAttributes.USAGE_TOUCH)
+                                .setUsage(android.os.VibrationAttributes.USAGE_NOTIFICATION)
                                 .build()
                             vibrator.vibrate(effect, attrs)
                         } else {
@@ -89,7 +100,14 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
                 
                 val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
                 if (vibrator != null && vibrator.hasVibrator()) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        val effect = try {
+                            VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
+                        } catch (e: Exception) {
+                            VibrationEffect.createOneShot(45, VibrationEffect.DEFAULT_AMPLITUDE)
+                        }
+                        vibrator.vibrate(effect)
+                    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         vibrator.vibrate(VibrationEffect.createOneShot(45, VibrationEffect.DEFAULT_AMPLITUDE))
                     } else {
                         @Suppress("DEPRECATION")

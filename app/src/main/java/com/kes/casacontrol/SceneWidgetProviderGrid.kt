@@ -7,9 +7,25 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.RemoteViews
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class SceneWidgetProviderGrid : AppWidgetProvider() {
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        // Pre-warm / pre-fetch access token in background so user clicks are instant
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val prefs = context.getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+                val clientId = prefs.getString("clientId", "") ?: ""
+                val secret = prefs.getString("clientSecret", "") ?: ""
+                val url = prefs.getString("regionUrl", "") ?: ""
+                if (clientId.isNotEmpty() && secret.isNotEmpty()) {
+                    TuyaApiClient(context.applicationContext, clientId, secret, url).getValidToken()
+                }
+            } catch (e: Exception) {}
+        }
+
         for (appWidgetId in appWidgetIds) {
             val intent = Intent(context, SceneWidgetServiceGrid::class.java).apply {
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)

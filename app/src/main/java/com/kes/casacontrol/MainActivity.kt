@@ -6,7 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -18,8 +22,9 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -87,6 +92,27 @@ class MainActivity : AppCompatActivity() {
             showDashboard()
         } else {
             showAuthForm()
+        }
+
+        requestBatteryOptimizationExemption()
+    }
+
+    private fun requestBatteryOptimizationExemption() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+                if (powerManager != null && !powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                }
+            } catch (e: Exception) {
+                try {
+                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                    startActivity(intent)
+                } catch (e2: Exception) {}
+            }
         }
     }
 
@@ -166,7 +192,7 @@ class MainActivity : AppCompatActivity() {
         val homeId = prefs.getString("homeId", "") ?: ""
         val sceneId = scene.getString("scene_id")
 
-        GlobalScope.launch(Dispatchers.IO) {
+        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             val api = TuyaApiClient(applicationContext, clientId, secret, url)
             val success = api.triggerScene(homeId, sceneId)
             withContext(Dispatchers.Main) {
@@ -589,7 +615,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fetchScenes(clientId: String, secret: String, url: String, uid: String) {
-        GlobalScope.launch(Dispatchers.IO) {
+        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             val api = TuyaApiClient(applicationContext, clientId, secret, url)
             val homes = api.getHomes(uid)
             val prefs = getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)

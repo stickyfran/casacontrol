@@ -21,7 +21,7 @@ class TuyaApiClient(
         private val connectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
         private val client = OkHttpClient.Builder()
             .connectionPool(connectionPool)
-            .retryOnConnectionFailure(true)
+            .retryOnConnectionFailure(false)
             .connectTimeout(3, TimeUnit.SECONDS)
             .writeTimeout(3, TimeUnit.SECONDS)
             .readTimeout(3, TimeUnit.SECONDS)
@@ -64,8 +64,8 @@ class TuyaApiClient(
         val cachedToken = prefs.getString("access_token", "") ?: ""
         val expireTime = prefs.getLong("access_token_expire", 0L)
         
-        // 5-minute safety margin (300,000 ms) before expiration
-        if (!forceRefresh && cachedToken.isNotEmpty() && System.currentTimeMillis() < expireTime - 300000) {
+        // 15-minute safety margin (900,000 ms) before expiration to prevent double-calls on user taps
+        if (!forceRefresh && cachedToken.isNotEmpty() && System.currentTimeMillis() < expireTime - 900000) {
             return cachedToken
         }
 
