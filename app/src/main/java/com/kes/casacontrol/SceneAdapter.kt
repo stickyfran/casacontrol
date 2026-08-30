@@ -4,6 +4,8 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -12,13 +14,22 @@ import org.json.JSONObject
 class SceneAdapter(
     val scenes: MutableList<JSONObject>,
     private val onClick: (JSONObject) -> Unit,
-    private val onLongClick: (Int, JSONObject) -> Unit
+    private val onEditClick: (Int, JSONObject) -> Unit
 ) : RecyclerView.Adapter<SceneAdapter.SceneViewHolder>() {
+
+    var isEditMode: Boolean = false
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
 
     class SceneViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tvName)
+        val tvOriginalName: TextView = view.findViewById(R.id.tvOriginalName)
         val tvEmoji: TextView = view.findViewById(R.id.tvEmoji)
         val container: LinearLayout = view.findViewById(R.id.itemContainer)
+        val btnEditScene: ImageButton = view.findViewById(R.id.btnEditScene)
+        val ivDragHandle: ImageView = view.findViewById(R.id.ivDragHandle)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SceneViewHolder {
@@ -34,24 +45,44 @@ class SceneAdapter(
         val emoji = scene.optString("emoji", "⚡")
         val colorHex = scene.optString("color", "")
 
-        holder.tvName.text = if (customName.isNotEmpty()) customName else defaultName
+        val displayName = if (customName.isNotEmpty()) customName else defaultName
+        holder.tvName.text = displayName
         holder.tvEmoji.text = emoji
 
+        if (customName.isNotEmpty() && customName != defaultName) {
+            holder.tvOriginalName.text = "Original: $defaultName"
+            holder.tvOriginalName.visibility = View.VISIBLE
+        } else {
+            holder.tvOriginalName.visibility = View.GONE
+        }
+
+        // Color handling
         if (colorHex.isNotEmpty()) {
             try {
                 holder.container.setBackgroundColor(Color.parseColor(colorHex))
-                // Simple auto-contraste para texto (podria mejorarse pero funciona)
+                holder.tvName.setTextColor(Color.WHITE)
+                holder.tvOriginalName.setTextColor(Color.parseColor("#DDFFFFFF"))
             } catch (e: Exception) {
-                // Ignore invalid colors
+                holder.container.setBackgroundResource(R.drawable.widget_item_bg)
             }
         } else {
-            // Revertir a default
-            holder.container.setBackgroundResource(android.R.color.transparent)
+            holder.container.setBackgroundResource(R.drawable.widget_item_bg)
         }
 
-        holder.container.setOnClickListener { onClick(scene) }
-        holder.container.setOnLongClickListener { 
-            onLongClick(position, scene)
+        // Edit mode visuals
+        if (isEditMode) {
+            holder.btnEditScene.visibility = View.VISIBLE
+            holder.ivDragHandle.alpha = 1.0f
+            holder.container.setOnClickListener { onEditClick(position, scene) }
+        } else {
+            holder.btnEditScene.visibility = View.GONE
+            holder.ivDragHandle.alpha = 0.3f
+            holder.container.setOnClickListener { onClick(scene) }
+        }
+
+        holder.btnEditScene.setOnClickListener { onEditClick(position, scene) }
+        holder.container.setOnLongClickListener {
+            onEditClick(position, scene)
             true
         }
     }

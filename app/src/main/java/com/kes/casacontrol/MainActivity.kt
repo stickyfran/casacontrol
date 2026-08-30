@@ -4,19 +4,20 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.ScrollView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -31,7 +32,27 @@ class MainActivity : AppCompatActivity() {
     private lateinit var layoutDashboard: View
     private lateinit var rvScenes: RecyclerView
     private lateinit var sceneAdapter: SceneAdapter
+    private lateinit var btnToggleEditMode: MaterialButton
+    private lateinit var tvModeBanner: TextView
     private val scenesList = mutableListOf<JSONObject>()
+
+    private val presetEmojis = listOf(
+        "⚡", "💡", "🛋️", "🌙", "☀️", "🚪", "📺", "❄️", 
+        "🔥", "☕", "🎵", "🔒", "🍳", "🏠", "🌿", "🎮", "🚿", "🧹", "🎬", "🛏️"
+    )
+
+    private val presetColors = listOf(
+        Pair("Azul", "#2563EB"),
+        Pair("Cian", "#0891B2"),
+        Pair("Verde", "#16A34A"),
+        Pair("Morado", "#9333EA"),
+        Pair("Rosa", "#DB2777"),
+        Pair("Naranja", "#EA580C"),
+        Pair("Ámbar", "#D97706"),
+        Pair("Rojo", "#DC2626"),
+        Pair("Grafito", "#334155"),
+        Pair("Predeterminado", "")
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,9 +61,18 @@ class MainActivity : AppCompatActivity() {
         layoutAuth = findViewById(R.id.layoutAuth)
         layoutDashboard = findViewById(R.id.layoutDashboard)
         rvScenes = findViewById(R.id.rvScenes)
+        btnToggleEditMode = findViewById(R.id.btnToggleEditMode)
+        tvModeBanner = findViewById(R.id.tvModeBanner)
         
         val btnLogout = findViewById<ImageButton>(R.id.btnLogout)
         btnLogout.setOnClickListener { showAuthForm() }
+
+        val btnRefresh = findViewById<ImageButton>(R.id.btnRefreshScenes)
+        btnRefresh.setOnClickListener { refreshScenesFromTuya() }
+
+        btnToggleEditMode.setOnClickListener {
+            toggleEditMode()
+        }
 
         setupAuthForm()
         
@@ -57,6 +87,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun toggleEditMode() {
+        val newMode = !sceneAdapter.isEditMode
+        sceneAdapter.isEditMode = newMode
+        if (newMode) {
+            btnToggleEditMode.text = "✅ Listo"
+            tvModeBanner.text = "✏️ Modo Edición activo: Toca cualquier escena para personalizarla o arrastra para ordenar"
+            tvModeBanner.setTextColor(Color.parseColor("#F59E0B"))
+        } else {
+            btnToggleEditMode.text = "✏️ Editar"
+            tvModeBanner.text = "💡 Modo Normal: Toca una escena para activarla"
+            tvModeBanner.setTextColor(Color.parseColor("#94A3B8"))
+        }
+    }
+
     private fun showAuthForm() {
         layoutAuth.visibility = View.VISIBLE
         layoutDashboard.visibility = View.GONE
@@ -66,14 +110,15 @@ class MainActivity : AppCompatActivity() {
         layoutAuth.visibility = View.GONE
         layoutDashboard.visibility = View.VISIBLE
         
-        sceneAdapter = SceneAdapter(scenesList, 
+        sceneAdapter = SceneAdapter(
+            scenesList, 
             onClick = { scene -> executeScene(scene) },
-            onLongClick = { pos, scene -> showEditDialog(pos, scene) }
+            onEditClick = { pos, scene -> showEditDialog(pos, scene) }
         )
         rvScenes.layoutManager = LinearLayoutManager(this)
         rvScenes.adapter = sceneAdapter
         
-        // Setup Drag and Drop
+        // Drag and Drop support
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
         ) {
@@ -100,7 +145,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun executeScene(scene: JSONObject) {
-        Toast.makeText(this, "Ejecutando...", Toast.LENGTH_SHORT).show()
+        val sceneName = scene.optString("custom_name", scene.optString("name", "Escena"))
+        Toast.makeText(this, "Ejecutando $sceneName...", Toast.LENGTH_SHORT).show()
         val prefs = getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
         val clientId = prefs.getString("clientId", "") ?: ""
         val secret = prefs.getString("clientSecret", "") ?: ""
@@ -113,7 +159,7 @@ class MainActivity : AppCompatActivity() {
             val success = api.triggerScene(homeId, sceneId)
             withContext(Dispatchers.Main) {
                 if (success) {
-                    Toast.makeText(this@MainActivity, "Escena activada", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "¡$sceneName activada!", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this@MainActivity, "Error: ${api.lastError}", Toast.LENGTH_LONG).show()
                 }
@@ -126,21 +172,124 @@ class MainActivity : AppCompatActivity() {
         val etCustomName = dialogView.findViewById<EditText>(R.id.etCustomName)
         val etEmoji = dialogView.findViewById<EditText>(R.id.etEmoji)
         val etColor = dialogView.findViewById<EditText>(R.id.etColor)
+        
+        val tvPreviewName = dialogView.findViewById<TextView>(R.id.tvPreviewName)
+        val tvPreviewEmoji = dialogView.findViewById<TextView>(R.id.tvPreviewEmoji)
+        val previewContainer = dialogView.findViewById<LinearLayout>(R.id.previewContainer)
+        val layoutEmojiPalette = dialogView.findViewById<LinearLayout>(R.id.layoutEmojiPalette)
+        val layoutColorPalette = dialogView.findViewById<LinearLayout>(R.id.layoutColorPalette)
 
-        etCustomName.setText(scene.optString("custom_name", scene.optString("name", "")))
-        etEmoji.setText(scene.optString("emoji", "⚡"))
-        etColor.setText(scene.optString("color", ""))
+        val defaultName = scene.optString("name", "Escena")
+        val currentCustomName = scene.optString("custom_name", defaultName)
+        val currentEmoji = scene.optString("emoji", "⚡")
+        val currentColor = scene.optString("color", "")
+
+        etCustomName.setText(currentCustomName)
+        etEmoji.setText(currentEmoji)
+        etColor.setText(currentColor)
+
+        fun updatePreview() {
+            val nameText = etCustomName.text.toString().trim()
+            tvPreviewName.text = if (nameText.isNotEmpty()) nameText else defaultName
+            val emojiText = etEmoji.text.toString().trim()
+            tvPreviewEmoji.text = if (emojiText.isNotEmpty()) emojiText else "⚡"
+
+            val col = etColor.text.toString().trim()
+            if (col.isNotEmpty()) {
+                try {
+                    val colorInt = Color.parseColor(if (col.startsWith("#")) col else "#$col")
+                    previewContainer.setBackgroundColor(colorInt)
+                } catch (e: Exception) {
+                    previewContainer.setBackgroundResource(R.drawable.widget_item_bg)
+                }
+            } else {
+                previewContainer.setBackgroundResource(R.drawable.widget_item_bg)
+            }
+        }
+
+        updatePreview()
+
+        // Text change listeners for real-time preview
+        etCustomName.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updatePreview() }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+        etEmoji.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updatePreview() }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+        etColor.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updatePreview() }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        // Build Emoji Quick Palette
+        for (emoji in presetEmojis) {
+            val emojiBtn = TextView(this).apply {
+                text = emoji
+                textSize = 22f
+                setPadding(16, 8, 16, 8)
+                isClickable = true
+                isFocusable = true
+                setBackgroundResource(android.R.drawable.list_selector_background)
+                setOnClickListener {
+                    etEmoji.setText(emoji)
+                }
+            }
+            layoutEmojiPalette.addView(emojiBtn)
+        }
+
+        // Build Color Quick Palette
+        for ((name, hex) in presetColors) {
+            val colorBtn = Button(this).apply {
+                text = if (hex.isEmpty()) "Default" else ""
+                layoutParams = LinearLayout.LayoutParams(90, 90).apply {
+                    setMargins(8, 4, 8, 4)
+                }
+                if (hex.isNotEmpty()) {
+                    val shape = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(Color.parseColor(hex))
+                    }
+                    background = shape
+                } else {
+                    setBackgroundResource(R.drawable.widget_item_bg)
+                }
+                setOnClickListener {
+                    etColor.setText(hex)
+                }
+            }
+            layoutColorPalette.addView(colorBtn)
+        }
 
         AlertDialog.Builder(this)
             .setView(dialogView)
             .setPositiveButton("Guardar") { _, _ ->
-                scene.put("custom_name", etCustomName.text.toString().trim())
-                scene.put("emoji", etEmoji.text.toString().trim())
-                val col = etColor.text.toString().trim()
-                scene.put("color", if (col.startsWith("#")) col else if (col.isNotEmpty()) "#$col" else "")
+                val finalName = etCustomName.text.toString().trim()
+                val finalEmoji = etEmoji.text.toString().trim()
+                val finalColor = etColor.text.toString().trim()
+
+                scene.put("custom_name", finalName)
+                scene.put("emoji", if (finalEmoji.isNotEmpty()) finalEmoji else "⚡")
+                val formattedColor = if (finalColor.isNotEmpty()) {
+                    if (finalColor.startsWith("#")) finalColor else "#$finalColor"
+                } else ""
+                scene.put("color", formattedColor)
                 
                 sceneAdapter.notifyItemChanged(position)
                 saveScenesToPrefs()
+                Toast.makeText(this, "Escena guardada", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton("Restablecer") { _, _ ->
+                scene.remove("custom_name")
+                scene.remove("emoji")
+                scene.remove("color")
+                sceneAdapter.notifyItemChanged(position)
+                saveScenesToPrefs()
+                Toast.makeText(this, "Escena restablecida a valores por defecto", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancelar", null)
             .show()
@@ -165,19 +314,38 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateAllWidgets() {
-        // Update List widgets
-        var intent = Intent(this, SceneWidgetProvider::class.java)
-        intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-        var ids = AppWidgetManager.getInstance(application).getAppWidgetIds(ComponentName(application, SceneWidgetProvider::class.java))
-        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+        var intent = Intent(this, SceneWidgetProvider::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(
+                ComponentName(application, SceneWidgetProvider::class.java)
+            )
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+        }
         sendBroadcast(intent)
 
-        // Update Grid widgets
-        intent = Intent(this, SceneWidgetProviderGrid::class.java)
-        intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-        ids = AppWidgetManager.getInstance(application).getAppWidgetIds(ComponentName(application, SceneWidgetProviderGrid::class.java))
-        intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+        intent = Intent(this, SceneWidgetProviderGrid::class.java).apply {
+            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            val ids = AppWidgetManager.getInstance(application).getAppWidgetIds(
+                ComponentName(application, SceneWidgetProviderGrid::class.java)
+            )
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+        }
         sendBroadcast(intent)
+    }
+
+    private fun refreshScenesFromTuya() {
+        val prefs = getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
+        val clientId = prefs.getString("clientId", "") ?: ""
+        val secret = prefs.getString("clientSecret", "") ?: ""
+        val url = prefs.getString("regionUrl", "") ?: ""
+        val uid = prefs.getString("uid", "") ?: ""
+
+        if (clientId.isNotEmpty() && secret.isNotEmpty() && uid.isNotEmpty()) {
+            Toast.makeText(this, "Sincronizando con Tuya...", Toast.LENGTH_SHORT).show()
+            fetchScenes(clientId, secret, url, uid)
+        } else {
+            showAuthForm()
+        }
     }
 
     private fun setupAuthForm() {

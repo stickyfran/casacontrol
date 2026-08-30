@@ -95,36 +95,60 @@
         android:orientation="vertical"
         android:visibility="gone">
 
+        <!-- Top App Bar -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <TextView
+                android:id="@+id/tvDashboardTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Mis Escenas"
-                android:textSize="24sp"
+                android:textSize="22sp"
                 android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnToggleEditMode"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✏️ Editar"
+                android:textSize="13sp"
+                android:layout_marginEnd="8dp" />
+
+            <ImageButton
+                android:id="@+id/btnRefreshScenes"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_popup_sync"
+                android:contentDescription="Sincronizar"
+                android:layout_marginEnd="4dp" />
 
             <ImageButton
                 android:id="@+id/btnLogout"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_menu_preferences"
-                android:contentDescription="Ajustes" />
+                android:contentDescription="Configuración" />
         </LinearLayout>
 
+        <!-- Status / Helper Banner -->
         <TextView
+            android:id="@+id/tvModeBanner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="16dp"
-            android:paddingBottom="8dp"
-            android:text="Toca para ejecutar. Mantén pulsado para editar. Arrastra para reordenar."
+            android:paddingVertical="4dp"
+            android:text="💡 Modo Normal: Toca para activar una escena"
             android:textSize="12sp"
             android:textColor="?android:attr/textColorSecondary"/>
 
