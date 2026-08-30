@@ -21,10 +21,10 @@ class TuyaApiClient(
         private val connectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
         private val client = OkHttpClient.Builder()
             .connectionPool(connectionPool)
-            .retryOnConnectionFailure(false)
-            .connectTimeout(3, TimeUnit.SECONDS)
-            .writeTimeout(3, TimeUnit.SECONDS)
-            .readTimeout(3, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
             .build()
 
         fun evictConnectionPool() {
@@ -102,7 +102,12 @@ class TuyaApiClient(
             }
         } catch (e: Exception) { 
             lastError = e.message ?: "Network error"
-            e.printStackTrace() 
+            e.printStackTrace()
+            // Evict pool and retry once on network error (likely stale connection after screen off)
+            if (!forceRefresh) {
+                evictConnectionPool()
+                return getValidToken(forceRefresh = true)
+            }
         }
         return ""
     }
