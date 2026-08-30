@@ -15,10 +15,14 @@ import kotlinx.coroutines.withContext
 
 class ExecuteSceneReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val sceneId = intent.getStringExtra("scene_id") ?: return
-        
-        // Instant Haptic Feedback on widget tap
+        // Instant Haptic Feedback on widget tap immediately
         triggerHapticFeedback(context)
+
+        val sceneId = intent.getStringExtra("scene_id")
+            ?: intent.data?.lastPathSegment
+            ?: return
+
+        val sceneName = intent.getStringExtra("scene_name") ?: "Escena"
 
         val prefs = context.getSharedPreferences("tuya_prefs", Context.MODE_PRIVATE)
         val clientId = prefs.getString("clientId", "") ?: ""
@@ -31,8 +35,6 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
             return
         }
 
-        Toast.makeText(context, "Ejecutando...", Toast.LENGTH_SHORT).show()
-
         // goAsync prevents Android from killing the BroadcastReceiver process before coroutine finishes
         val pendingResult = goAsync()
 
@@ -42,9 +44,10 @@ class ExecuteSceneReceiver : BroadcastReceiver() {
                 val success = api.triggerScene(homeId, sceneId)
                 withContext(Dispatchers.Main) {
                     if (success) {
-                        Toast.makeText(context, "Escena ejecutada", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "¡$sceneName activada!", Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(context, "Error al ejecutar", Toast.LENGTH_SHORT).show()
+                        val err = if (api.lastError.isNotEmpty()) api.lastError else "Error al ejecutar"
+                        Toast.makeText(context, "$sceneName: $err", Toast.LENGTH_SHORT).show()
                     }
                 }
             } finally {

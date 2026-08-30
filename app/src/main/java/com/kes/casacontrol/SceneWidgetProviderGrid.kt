@@ -20,9 +20,14 @@ class SceneWidgetProviderGrid : AppWidgetProvider() {
                 setEmptyView(R.id.widget_grid_view, R.id.widget_grid_empty_view)
             }
             
-            val clickIntent = Intent(context, ExecuteSceneReceiver::class.java)
+            val clickIntent = Intent(context, ExecuteSceneReceiver::class.java).apply {
+                action = "com.kes.casacontrol.ACTION_EXECUTE_SCENE"
+            }
             val clickPendingIntent = PendingIntent.getBroadcast(
-                context, 0, clickIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                context,
+                appWidgetId,
+                clickIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
             )
             views.setPendingIntentTemplate(R.id.widget_grid_view, clickPendingIntent)
             

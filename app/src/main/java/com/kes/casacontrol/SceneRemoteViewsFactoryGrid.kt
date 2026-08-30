@@ -78,8 +78,12 @@ class SceneRemoteViewsFactoryGrid(
             rv.setInt(R.id.widget_item_container, "setBackgroundResource", R.drawable.widget_item_bg)
         }
 
+        val sceneId = scene.optString("scene_id")
         val fillInIntent = Intent().apply {
-            putExtra("scene_id", scene.optString("scene_id"))
+            action = "com.kes.casacontrol.ACTION_EXECUTE_SCENE"
+            data = android.net.Uri.parse("casacontrol://scene/$sceneId")
+            putExtra("scene_id", sceneId)
+            putExtra("scene_name", nameToDisplay)
         }
         rv.setOnClickFillInIntent(R.id.widget_item_container, fillInIntent)
         return rv
@@ -87,6 +91,12 @@ class SceneRemoteViewsFactoryGrid(
 
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount(): Int = 1
-    override fun getItemId(position: Int): Long = position.toLong()
+    override fun getItemId(position: Int): Long {
+        return if (position in 0 until scenesList.size) {
+            scenesList[position].optString("scene_id").hashCode().toLong()
+        } else {
+            position.toLong()
+        }
+    }
     override fun hasStableIds(): Boolean = true
 }
